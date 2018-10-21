@@ -1,7 +1,7 @@
 import numpy as np
 from keras.models import Sequential
-from keras import initializations
-from keras.initializations import normal, identity
+from keras import initializers
+from keras.initializers import normal, identity
 from keras.layers.core import Dense, Dropout, Activation, Flatten
 from keras.layers.recurrent import LSTM
 from keras.optimizers import RMSprop, SGD, Adam
@@ -73,13 +73,13 @@ def get_reward_trigger(new_iou):
 
 def get_q_network(weights_path):
     model = Sequential()
-    model.add(Dense(1024, init=lambda shape, name: normal(shape, scale=0.01, name=name), input_shape=(25112,)))
+    model.add(Dense(1024, input_shape=(25112,)))
     model.add(Activation('relu'))
     model.add(Dropout(0.2))
-    model.add(Dense(1024, init=lambda shape, name: normal(shape, scale=0.01, name=name)))
+    model.add(Dense(1024))
     model.add(Activation('relu'))
     model.add(Dropout(0.2))
-    model.add(Dense(6, init=lambda shape, name: normal(shape, scale=0.01, name=name)))
+    model.add(Dense(6))
     model.add(Activation('linear'))
     adam = Adam(lr=1e-6)
     model.compile(loss='mse', optimizer=adam)
@@ -100,3 +100,11 @@ def get_array_of_q_networks_for_pascal(weights_path, class_object):
             else:
                 q_networks.append(get_q_network("0"))
     return np.array([q_networks])
+
+def get_array_of_q_networks_for_dot(weights_path):
+    q_networks = []
+    if weights_path == "0":
+        q_networks.append(get_q_network("0"))
+    else:
+        q_networks.append(get_q_network(weights_path + "/model" + ".h5"))
+    return np.array([q_networks])    

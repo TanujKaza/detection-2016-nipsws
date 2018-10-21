@@ -1,6 +1,6 @@
 from keras.preprocessing import image
 import numpy as np
-
+import os
 
 def get_all_ids(annotations):
     all_ids = []
@@ -14,6 +14,14 @@ def get_all_images(image_names, path_voc):
     for j in range(np.size(image_names)):
         image_name = image_names[0][j]
         string = path_voc + '/JPEGImages/' + image_name + '.jpg'
+        images.append(image.load_img(string, False))
+    return images
+
+def get_all_dot_images(image_names, path_voc):
+    images = []
+    for j in range(np.size(image_names)):
+        image_name = image_names[0][j]
+        string = path_voc + image_name
         images.append(image.load_img(string, False))
     return images
 
@@ -36,6 +44,11 @@ def load_images_names_in_data_set(data_set_name, path_voc):
         return [x.split(None, 1)[0] for x in image_names]
     else:
         return [x.strip('\n') for x in image_names]
+
+
+def load_images_names_in_dot_data_set(path_voc):
+    file_path = path_voc
+    return os.listdir(path_voc)
 
 
 def load_images_labels_in_data_set(data_set_name, path_voc):
