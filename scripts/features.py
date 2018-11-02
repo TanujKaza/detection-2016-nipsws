@@ -223,11 +223,18 @@ def get_image_descriptor_for_image(image, model):
     _convout1_f = K.function(inputs, [model.layers[33].output])
     return _convout1_f([0] + [im])
 
+def get_img_descriptor(img,model):
+    img = cv2.resize(img, (224, 224)).astype(np.float32)
+    # img = img.transpose((2, 0, 1))
+    img = np.expand_dims(img, axis=0)
+    inputs = [K.learning_phase()] + model.inputs
+    _convout1_f = K.function(inputs, [model.layers[31].output])
+    return _convout1_f([0] + [img])    
 
-def get_conv_image_descriptor_for_image(image, model):
-    im = cv2.resize(image, (224, 224)).astype(np.float32)
+def get_conv_image_descriptor_for_image(img, model):
+    im = cv2.resize(img, (224, 224)).astype(np.float32)
     dim_ordering = K.image_dim_ordering()
-    if dim_ordering == 'th':
+    if dim_ordering == 'tf':
         # 'RGB'->'BGR'
         im = im[::-1, :, :]
         # Zero-center by mean pixel

@@ -21,6 +21,7 @@ from metrics import *
 from visualization import *
 from reinforcement import *
 import pdb
+import matplotlib.pyplot as plt
 
 
 # Read number of epoch to be trained, to make checkpointing
@@ -74,6 +75,7 @@ if __name__ == "__main__":
 
 	# model_vgg = obtain_compiled_vgg_16(path_vgg)
 	model_rl = obtain_compiled_model()
+	model_rl.summary()
 
 	# If you want to train it from first epoch, first option is selected. Otherwise,
 	# when making checkpointing, weights of last stored weights are loaded for a particular class object
@@ -82,10 +84,14 @@ if __name__ == "__main__":
 	#     models = get_array_of_q_networks_for_pascal("0", class_object)
 	# else:
 	#     models = get_array_of_q_networks_for_pascal(path_model, class_object)
-	if epochs_id == 0:
-		models = get_array_of_q_networks_for_dot("0")
-	else:
-		models = get_array_of_q_networks_for_dot(path_model)
+	# if epochs_id == 0:
+	# 	models = get_array_of_q_networks_for_dot("0")
+	# else:
+	# 	models = get_array_of_q_networks_for_dot(path_model)
+
+	models = get_q_network()
+
+	models.summary()
 
 	######## LOAD IMAGE NAMES ########
 
@@ -96,7 +102,7 @@ if __name__ == "__main__":
 	# else:
 		# image_names = np.array([load_images_names_in_data_set('trainval', path_voc)])
 	
-	image_names = np.array([load_images_names_in_dot_data_set(path_voc)])
+	img_names = np.array([load_images_names_in_dot_data_set(path_voc)])
 
 	######## LOAD IMAGES ########
 
@@ -107,14 +113,15 @@ if __name__ == "__main__":
 	# else:
 	# 	images = get_all_images(image_names, path_voc)
 
-	images = get_all_dot_images(image_names, path_voc)
+	imgs = get_all_dot_images(img_names, path_voc)
+	gt_masks = np.load('../data/bb_info.npy')
 
 	for i in range(epochs_id, epochs_id + epochs):
-		for j in range(np.size(image_names)):
+		for j in range(np.size(img_names)):
 			masked = 0
 			not_finished = 1
-			image = np.array(images[j])
-			image_name = image_names[0][j]
+			img = np.array(imgs[j])
+			img_name = img_names[0][j]
 			# annotation = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc)
 			# if two_databases == 1:
 			# 	if j < np.size(image_names1):
@@ -122,8 +129,11 @@ if __name__ == "__main__":
 			# 	else:
 			# 		annotation = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc2)
 			# gt_masks = generate_bounding_box_from_annotation(annotation, image.shape)
+			img_index = int(os.path.splitext(img_name)[0])
+			gt_mask = gt_masks[img_index]
+			# pdb.set_trace()
 			# array_classes_gt_objects = get_ids_objects_from_annotation(annotation)
-			region_mask = np.ones([image.shape[0], image.shape[1]])
+			region_mask = np.ones([img.shape[0], img.shape[1]])
 			# shape_gt_masks = np.shape(gt_masks)
 			# available_objects = np.ones(np.size(array_classes_gt_objects))
 			# Iterate through all the objects in the ground truth of an image
@@ -139,12 +149,14 @@ if __name__ == "__main__":
 			# this matrix stores the IoU of each object of the ground-truth, just in case
 			# the agent changes of observed object
 			# last_matrix = np.zeros([np.size(array_classes_gt_objects)])
-			region_image = image
+			region_image = img
 			offset = (0, 0)
-			size_mask = (image.shape[0], image.shape[1])
+			size_mask = (img.shape[0], img.shape[1])
 			original_shape = size_mask
 			old_region_mask = region_mask
-			region_mask = np.ones([image.shape[0], image.shape[1]])
+			region_mask = np.ones([img.shape[0], img.shape[1]])
+
+			# pdb.set_trace()
 
 			# ############################ START MODIFYING CODE FROM THIS POINT ONWARDS ############################
 
@@ -157,17 +169,18 @@ if __name__ == "__main__":
 			# 			available_objects[p] = 0
 				# We check if there are still obejcts to be found
 			# if np.count_nonzero(available_objects) == 0:
-			# 	not_finished = 0
+				# not_finished = 0
 			# follow_iou function calculates at each time step which is the groun truth object
 			# that overlaps more with the visual region, so that we can calculate the rewards appropiately
-			iou, new_iou, last_matrix, index = follow_iou(gt_masks, region_mask, array_classes_gt_objects,
-														  class_object, last_matrix, available_objects)
-			new_iou = iou
-			gt_mask = gt_masks[:, :, index]
+			# iou, new_iou, last_matrix, index = follow_iou(gt_masks, region_mask, array_classes_gt_objects,
+														  # class_object, last_matrix, available_objects)
+			# new_iou = iou
+			# gt_mask = gt_masks[:, :, index] # I have already calculated it for this dataset above only 
 			# init of the history vector that indicates past actions (6 actions * 4 steps in the memory)
 			history_vector = np.zeros([24])
 			# computation of the initial state
-			state = get_state(region_image, history_vector, model_vgg)
+			pdb.set_trace()
+			state = get_state(region_image, history_vector, model_rl)
 			# status indicates whether the agent is still alive and has not triggered the terminal action
 			status = 1
 			action = 0

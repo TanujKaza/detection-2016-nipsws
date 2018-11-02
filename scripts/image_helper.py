@@ -1,6 +1,8 @@
 from keras.preprocessing import image
 import numpy as np
 import os
+import pdb
+import cv2
 
 def get_all_ids(annotations):
     all_ids = []
@@ -22,7 +24,10 @@ def get_all_dot_images(image_names, path_voc):
     for j in range(np.size(image_names)):
         image_name = image_names[0][j]
         string = path_voc + image_name
-        images.append(image.load_img(string, False))
+        img = cv2.imread(string )
+        img = cv2.resize(img , (600,600))
+        images.append(img)
+        # images.append(image.load_img(string, False))
     return images
 
 

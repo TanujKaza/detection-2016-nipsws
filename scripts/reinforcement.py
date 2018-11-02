@@ -43,7 +43,9 @@ def update_history_vector(history_vector, action):
 
 
 def get_state(image, history_vector, model_vgg):
-    descriptor_image = get_conv_image_descriptor_for_image(image, model_vgg)
+    pdb.set_trace()
+    # descriptor_image = get_conv_image_descriptor_for_image(image, model_vgg)
+    descriptor_image = get_img_descriptor(image, model_vgg)
     descriptor_image = np.reshape(descriptor_image, (visual_descriptor_size, 1))
     history_vector = np.reshape(history_vector, (number_of_actions*actions_of_history, 1))
     state = np.vstack((descriptor_image, history_vector))
@@ -71,7 +73,7 @@ def get_reward_trigger(new_iou):
     return reward
 
 
-def get_q_network(weights_path):
+def get_q_network(weights_path=None):
     model = Sequential()
     model.add(Dense(1024, input_shape=(25112,)))
     model.add(Activation('relu'))
@@ -83,7 +85,7 @@ def get_q_network(weights_path):
     model.add(Activation('linear'))
     adam = Adam(lr=1e-6)
     model.compile(loss='mse', optimizer=adam)
-    if weights_path != "0":
+    if weights_path != None:
         model.load_weights(weights_path)
     return model
 
