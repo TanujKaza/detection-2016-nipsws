@@ -8,6 +8,7 @@ import pdb
 import cv2
 
 mask_info = []
+size = 128
 
 def save_bounding_box_info():
 	bb_info = np.array(mask_info)
@@ -16,9 +17,9 @@ def save_bounding_box_info():
 
 class dot(object):
 	def __init__(self):
-		self.cv = turtle.Canvas(width=600, height=600)
-		self.width = 600
-		self.height = 600
+		self.cv = turtle.Canvas(width=128, height=128)
+		self.width = 128
+		self.height = 128
 		# this will tell us where is the dot located in the image
 
 	def save(self,file,path):
@@ -27,7 +28,8 @@ class dot(object):
 		ps = self.cv.postscript(colormode='gray')
 		img = Image.open(io.BytesIO(ps.encode('utf-8')))
 		img = np.array(img)
-		img = cv2.resize(img , (600,600))
+		img = cv2.resize(img , (128,128))
+		os.makedirs('./dot_without_bg/' + path + '/' , exist_ok=True)
 		cv2.imwrite('./dot_without_bg/' + path + '/' + str(file) +'.bmp' , img)
 		self.cv.destroy()
 
@@ -35,7 +37,7 @@ class dot(object):
 		
 		# place main body
 		# radius = random.randint(10,40)
-		radius = 30
+		radius = 10
 		cx = random.randint(radius,self.width-radius)
 		cy = random.randint(radius,self.height-radius)
 		x0 = cx - radius 

@@ -1,5 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
+import cv2
+import pdb
 
 path_font = "/usr/share/fonts/liberation/LiberationMono-Regular.ttf"
 font = ImageFont.truetype(path_font, 24)
@@ -22,10 +24,12 @@ def string_for_action(action):
         return 'TRIGGER'
 
 
-def draw_sequences(i, k, step, action, draw, region_image, background, path_testing_folder, iou, reward,
+def draw_new_sequences(i, step, action, draw, region_image, background, path_testing_folder, iou, reward,
                    gt_mask, region_mask, image_name, save_boolean):
-    mask = Image.fromarray(255 * gt_mask)
     mask_img = Image.fromarray(255 * region_mask)
+    mask = np.zeros(region_mask.shape)
+    mask[gt_mask[0]:gt_mask[2] , gt_mask[1]:gt_mask[3] ] = 1
+    mask = Image.fromarray(255 * mask)
     image_offset = (1000 * step, 70)
     text_offset = (1000 * step, 550)
     masked_image_offset = (1000 * step, 1400)
@@ -37,7 +41,7 @@ def draw_sequences(i, k, step, action, draw, region_image, background, path_test
     background.paste(img_for_paste, image_offset)
     background.paste(mask, mask_offset)
     background.paste(mask_img, masked_image_offset)
-    file_name = path_testing_folder + '/' + image_name + str(i) + '_object_' + str(k) + '.png'
+    file_name = path_testing_folder + '/' + image_name + str(i) + '_object' + '.png'
     if save_boolean == 1:
         background.save(file_name)
     return background

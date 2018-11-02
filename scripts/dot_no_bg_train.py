@@ -15,7 +15,6 @@ from keras.preprocessing import image
 from sklearn.preprocessing import OneHotEncoder
 from features import get_image_descriptor_for_image, obtain_compiled_vgg_16, vgg_16, \
 	get_conv_image_descriptor_for_image, calculate_all_initial_feature_maps
-# from parse_xml_annotations import *
 from image_helper import *
 from metrics import *
 from visualization import *
@@ -35,85 +34,53 @@ if __name__ == "__main__":
 
 	######## PATHS definition ########
 
-	# path of PASCAL VOC 2012 or other database to use for training
-	path_voc = "../data/dot_without_bg/train/"
-	path_model = "../models_dot_without_bg/"
+	path_train = "../data/dot_without_bg/train/"
+	path_model = "..models/model_dot_without_bg/"
 	# path of where to store visualizations of search sequences
-	path_testing_folder = '../data/dot_without_bg/train/'
+	path_testing_folder = '../data/dot_without_bg/test_output/'
 	# path of VGG16 weights
-	# path_vgg = "../vgg16_weights.h5"
+	# path_vgg_model = "../vgg16_weights.h5"
 
 	######## PARAMETERS ########
 
-	# Class category of PASCAL that the RL agent will be searching
-	# class_object = 1
 	# Scale of subregion for the hierarchical regions (to deal with 2/4, 3/4)
 	scale_subregion = float(3)/4
 	scale_mask = float(1)/(scale_subregion*4)
 	# 1 if you want to obtain visualizations of the search for objects
-	# bool_draw = 0
 	bool_draw = 0
 	# How many steps can run the agent until finding one object
 	number_of_steps = 10
 	# Boolean to indicate if you want to use the two databases, or just one
 	two_databases = 0
-	epochs = 50
+	epochs = 5
 	gamma = 0.90
 	epsilon = 1
 	batch_size = 100
 	# Pointer to where to store the last experience in the experience replay buffer,
-	# actually there is a pointer for each PASCAL category, in case all categories
 	# are trained at the same time
-	h = np.zeros([20])
+	h = 0
 	# Each replay memory (one for each possible category) has a capacity of 100 experiences
 	buffer_experience_replay = 1000
 	# Init replay memories
-	replay = [[] for i in range(20)]
+	replay = []
 	reward = 0
 
-	######## MODELS ########
-
-	# model_vgg = obtain_compiled_vgg_16(path_vgg)
+	######## model ########
 	model_rl = obtain_compiled_model()
 	model_rl.summary()
 
 	# If you want to train it from first epoch, first option is selected. Otherwise,
 	# when making checkpointing, weights of last stored weights are loaded for a particular class object
 
-	# if epochs_id == 0:
-	#     models = get_array_of_q_networks_for_pascal("0", class_object)
-	# else:
-	#     models = get_array_of_q_networks_for_pascal(path_model, class_object)
-	# if epochs_id == 0:
-	# 	models = get_array_of_q_networks_for_dot("0")
-	# else:
-	# 	models = get_array_of_q_networks_for_dot(path_model)
-
-	models = get_q_network()
-
-	models.summary()
+	model = get_q_network()
+	model.summary()
 
 	######## LOAD IMAGE NAMES ########
 
-	# if two_databases == 1:
-		# image_names1 = np.array([load_images_names_in_data_set('trainval', path_voc)])
-		# image_names2 = np.array([load_images_names_in_data_set('trainval', path_voc2)])
-		# image_names = np.concatenate([image_names1, image_names2])
-	# else:
-		# image_names = np.array([load_images_names_in_data_set('trainval', path_voc)])
-	
-	img_names = np.array([load_images_names_in_dot_data_set(path_voc)])
+	img_names = np.array([load_images_names_in_dot_data_set(path_train)])
+	imgs = get_all_dot_images(img_names, path_train)
 
-	######## LOAD IMAGES ########
-
-	# if two_databases == 1:
-	# 	images1 = get_all_images(image_names1, path_voc)
-	# 	images2 = get_all_images(image_names2, path_voc2)
-	# 	images = np.concatenate([images1, images2])
-	# else:
-	# 	images = get_all_images(image_names, path_voc)
-
-	imgs = get_all_dot_images(img_names, path_voc)
+	######## LOAD Ground Truth values ########
 	gt_masks = np.load('../data/bb_info.npy')
 
 	for i in range(epochs_id, epochs_id + epochs):
@@ -122,82 +89,55 @@ if __name__ == "__main__":
 			not_finished = 1
 			img = np.array(imgs[j])
 			img_name = img_names[0][j]
-			# annotation = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc)
-			# if two_databases == 1:
-			# 	if j < np.size(image_names1):
-			# 		annotation = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc)
-			# 	else:
-			# 		annotation = get_bb_of_gt_from_pascal_xml_annotation(image_name, path_voc2)
-			# gt_masks = generate_bounding_box_from_annotation(annotation, image.shape)
 			img_index = int(os.path.splitext(img_name)[0])
 			gt_mask = gt_masks[img_index]
+			gt_mask_img = np.zeros([img.shape[0] , img.shape[1]])
+			gt_mask_img[gt_mask[0]:gt_mask[2] , gt_mask[1]:gt_mask[3] ] = 1
+
 			# pdb.set_trace()
 			# array_classes_gt_objects = get_ids_objects_from_annotation(annotation)
 			region_mask = np.ones([img.shape[0], img.shape[1]])
-			# shape_gt_masks = np.shape(gt_masks)
-			# available_objects = np.ones(np.size(array_classes_gt_objects))
-			# Iterate through all the objects in the ground truth of an image
-			# for k in range(np.size(array_classes_gt_objects)):
-				# Init visualization
-				# background = Image.new('RGBA', (10000, 2500), (255, 255, 255, 255))
-				# draw = ImageDraw.Draw(background)
-				# We check whether the ground truth object is of the target class category
-			# if array_classes_gt_objects[k] == class_object:
-				# gt_mask = gt_masks[:, :, k]
 			step = 0
-			new_iou = 0
+			# Init background
+			background = Image.new('RGBA', (10000, 2500), (255, 255, 255, 255))
+			draw = ImageDraw.Draw(background)
 			# this matrix stores the IoU of each object of the ground-truth, just in case
 			# the agent changes of observed object
-			# last_matrix = np.zeros([np.size(array_classes_gt_objects)])
 			region_image = img
 			offset = (0, 0)
 			size_mask = (img.shape[0], img.shape[1])
 			original_shape = size_mask
 			old_region_mask = region_mask
 			region_mask = np.ones([img.shape[0], img.shape[1]])
+			new_iou = calculate_iou(gt_mask_img , region_mask)			
+			iou = new_iou
 
-			# pdb.set_trace()
-
-			# ############################ START MODIFYING CODE FROM THIS POINT ONWARDS ############################
 
 			# If the ground truth object is already masked by other already found masks, do not
 			# use it for training
-			# if masked == 1:
-			# 	for p in range(gt_masks.shape[2]):
-			# 		overlap = calculate_overlapping(old_region_mask, gt_masks[:, :, p])
-			# 		if overlap > 0.60:
-			# 			available_objects[p] = 0
 				# We check if there are still obejcts to be found
-			# if np.count_nonzero(available_objects) == 0:
-				# not_finished = 0
 			# follow_iou function calculates at each time step which is the groun truth object
 			# that overlaps more with the visual region, so that we can calculate the rewards appropiately
-			# iou, new_iou, last_matrix, index = follow_iou(gt_masks, region_mask, array_classes_gt_objects,
-														  # class_object, last_matrix, available_objects)
-			# new_iou = iou
-			# gt_mask = gt_masks[:, :, index] # I have already calculated it for this dataset above only 
 			# init of the history vector that indicates past actions (6 actions * 4 steps in the memory)
 			history_vector = np.zeros([24])
 			# computation of the initial state
-			pdb.set_trace()
 			state = get_state(region_image, history_vector, model_rl)
 			# status indicates whether the agent is still alive and has not triggered the terminal action
 			status = 1
 			action = 0
 			reward = 0
 			if step > number_of_steps:
-				background = draw_sequences(i, k, step, action, draw, region_image, background,
-											path_testing_folder, iou, reward, gt_mask, region_mask, image_name,
+				background = draw_new_sequences(i, step, action, draw, region_image, background,
+											path_testing_folder, iou, reward, gt_mask, region_mask, img_name,
 											bool_draw)
 				step += 1
 			while (status == 1) & (step < number_of_steps) & not_finished:
-				category = int(array_classes_gt_objects[k]-1)
-				model = models[0][category]
 				qval = model.predict(state.T, batch_size=1)
-				background = draw_sequences(i, k, step, action, draw, region_image, background,
-											path_testing_folder, iou, reward, gt_mask, region_mask, image_name,
-											bool_draw)
+				background = draw_new_sequences(i, step, action, draw, region_image, background,
+											path_testing_folder, iou, reward, gt_mask, region_mask,
+											img_name,bool_draw)
 				step += 1
+				print(step)
 				# we force terminal action in case actual IoU is higher than 0.5, to train faster the agent
 				if (i < 100) & (new_iou > 0.5):
 					action = 6
@@ -208,14 +148,13 @@ if __name__ == "__main__":
 					action = (np.argmax(qval))+1
 				# terminal action
 				if action == 6:
-					iou, new_iou, last_matrix, index = follow_iou(gt_masks, region_mask,
-																  array_classes_gt_objects, class_object,
-																  last_matrix, available_objects)
-					gt_mask = gt_masks[:, :, index]
+					gt_mask_img = np.zeros([img.shape[0] , img.shape[1]])
+					gt_mask_img[gt_mask[0]:gt_mask[2] , gt_mask[1]:gt_mask[3] ] = 1
+					new_iou = calculate_iou(gt_mask_img , region_mask)
 					reward = get_reward_trigger(new_iou)
-					background = draw_sequences(i, k, step, action, draw, region_image, background,
-												path_testing_folder, iou, reward, gt_mask, region_mask,
-												image_name, bool_draw)
+					background = draw_new_sequences(i, step, action, draw, region_image, background,
+											path_testing_folder, iou, reward, gt_mask, region_mask,
+											img_name,bool_draw)
 					step += 1
 				# movement action, we perform the crop of the corresponding subregion
 				else:
@@ -239,29 +178,32 @@ if __name__ == "__main__":
 									  size_mask[0] * scale_mask / 2)
 						offset = (offset[0] + size_mask[0] * scale_mask / 2,
 								  offset[1] + size_mask[0] * scale_mask / 2)
+
+					offset = [int(x) for x in list(offset)]
+					offset_aux = [int(x) for x in list(offset_aux)]
+					size_mask = [int(x) for x in list(size_mask)]
+
 					region_image = region_image[offset_aux[0]:offset_aux[0] + size_mask[0],
 								   offset_aux[1]:offset_aux[1] + size_mask[1]]
 					region_mask[offset[0]:offset[0] + size_mask[0], offset[1]:offset[1] + size_mask[1]] = 1
-					iou, new_iou, last_matrix, index = follow_iou(gt_masks, region_mask,
-																  array_classes_gt_objects, class_object,
-																  last_matrix, available_objects)
-					gt_mask = gt_masks[:, :, index]
+					gt_mask_img = np.zeros([img.shape[0] , img.shape[1]])
+					gt_mask_img[gt_mask[0]:gt_mask[2] , gt_mask[1]:gt_mask[3] ] = 1
+					new_iou = calculate_iou(gt_mask_img , region_mask)
 					reward = get_reward_movement(iou, new_iou)
 					iou = new_iou
+				
 				history_vector = update_history_vector(history_vector, action)
-				new_state = get_state(region_image, history_vector, model_vgg)
+				new_state = get_state(region_image, history_vector, model_rl)
 				# Experience replay storage
-				if len(replay[category]) < buffer_experience_replay:
-					replay[category].append((state, action, reward, new_state))
+				if len(replay) < buffer_experience_replay:
+					replay.append((state, action, reward, new_state))
 				else:
-					if h[category] < (buffer_experience_replay-1):
-						h[category] += 1
-					else:
-						h[category] = 0
-					h_aux = h[category]
+					if h < (buffer_experience_replay-1):
+						h += 1
+					h_aux = h
 					h_aux = int(h_aux)
-					replay[category][h_aux] = (state, action, reward, new_state)
-					minibatch = random.sample(replay[category], batch_size)
+					replay[h_aux] = (state, action, reward, new_state)
+					minibatch = random.sample(replay, batch_size)
 					X_train = []
 					y_train = []
 					# we pick from the replay memory a sampled minibatch and generate the training samples
@@ -286,24 +228,22 @@ if __name__ == "__main__":
 					y_train = y_train.astype("float32")
 					X_train = X_train[:, :, 0]
 					y_train = y_train[:, :, 0]
-					hist = model.fit(X_train, y_train, batch_size=batch_size, nb_epoch=1, verbose=0)
-					models[0][category] = model
+					hist = model.fit(X_train, y_train, batch_size=batch_size, epochs=1, verbose=0)
 					state = new_state
 				if action == 6:
 					status = 0
 					masked = 1
 					# we mask object found with ground-truth so that agent learns faster
-					image = mask_image_with_mean_background(gt_mask, image)
+					gt_mask_img = np.zeros(img.shape)
+					gt_mask_img[gt_mask[0]:gt_mask[2] , gt_mask[1]:gt_mask[3] ] = 1
+					# NOTE I am not sure why they are doing this 
+					# img = mask_image_with_mean_background(gt_mask_img, img)
 				else:
 					masked = 0
-			available_objects[index] = 0
 		if epsilon > 0.1:
 			epsilon -= 0.1
-		for t in range (np.size(models)):
-			if t == (class_object-1):
-				string = path_model + '/model' + str(t) + '_epoch_' + str(i) + 'h5'
-				string2 = path_model + '/model' + str(t) + 'h5'
-				model = models[0][t]
-				model.save_weights(string, overwrite=True)
-				model.save_weights(string2, overwrite=True)
+		string = path_model + str(t) + '_epoch_' + str(i) + 'h5'
+		string2 = path_model + str(t) + 'h5'
+		model.save_weights(string, overwrite=True)
+		model.save_weights(string2, overwrite=True)
 

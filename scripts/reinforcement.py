@@ -12,7 +12,7 @@ number_of_actions = 6
 # Actions captures in the history vector
 actions_of_history = 4
 # Visual descriptor size
-visual_descriptor_size = 25088
+visual_descriptor_size = 90000
 # Reward movement action
 reward_movement_action = 1
 # Reward terminal action
@@ -42,10 +42,8 @@ def update_history_vector(history_vector, action):
         return updated_history_vector
 
 
-def get_state(image, history_vector, model_vgg):
-    pdb.set_trace()
-    # descriptor_image = get_conv_image_descriptor_for_image(image, model_vgg)
-    descriptor_image = get_img_descriptor(image, model_vgg)
+def get_state(image, history_vector, model_rl):
+    descriptor_image = get_img_descriptor(image, model_rl)
     descriptor_image = np.reshape(descriptor_image, (visual_descriptor_size, 1))
     history_vector = np.reshape(history_vector, (number_of_actions*actions_of_history, 1))
     state = np.vstack((descriptor_image, history_vector))
@@ -75,7 +73,8 @@ def get_reward_trigger(new_iou):
 
 def get_q_network(weights_path=None):
     model = Sequential()
-    model.add(Dense(1024, input_shape=(25112,)))
+    # model.add(Dense(1024, input_shape=(25112,)))
+    model.add(Dense(1024, input_shape=(90024,)))
     model.add(Activation('relu'))
     model.add(Dropout(0.2))
     model.add(Dense(1024))
@@ -102,11 +101,3 @@ def get_array_of_q_networks_for_pascal(weights_path, class_object):
             else:
                 q_networks.append(get_q_network("0"))
     return np.array([q_networks])
-
-def get_array_of_q_networks_for_dot(weights_path):
-    q_networks = []
-    if weights_path == "0":
-        q_networks.append(get_q_network("0"))
-    else:
-        q_networks.append(get_q_network(weights_path + "/model" + ".h5"))
-    return np.array([q_networks])    
