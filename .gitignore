@@ -22,10 +22,14 @@ lib/
 lib64/
 parts/
 sdist/
+models/
+graphs/
 var/
 *.egg-info/
 .installed.cfg
 *.egg
+*.hdf5
+*.json
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
