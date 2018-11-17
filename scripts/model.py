@@ -102,7 +102,9 @@ class Model(object):
 
 		image_train = np.array( image_train )
 		y_train = np.array( y_train )
-				# Rescale -1 to 1
+		
+		pdb.set_trace()
+		# Rescale -1 to 1
 		image_train = ( image_train.astype( np.float32 ) - 127.5 ) / 127.5
 		image_train = np.expand_dims( image_train, axis=3 )		
 
@@ -175,7 +177,7 @@ class Model(object):
 		labels = y_test[idx]
 		labels = np.squeeze(labels, axis=2)
 		pred = self.model.predict(imgs)
-		# pdb.set_trace()
+		pdb.set_trace()
 
 
 

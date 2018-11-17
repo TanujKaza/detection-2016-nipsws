@@ -224,8 +224,9 @@ def get_image_descriptor_for_image(image, model):
 
 def get_img_descriptor(img,model):
     # img = img.transpose((2, 0, 1))
-    img = cv2.resize(img, (600, 600)).astype(np.float32)
+    img = cv2.resize(img, (128, 128)).astype(np.float32)
     img = np.expand_dims(img, axis=0)
+    img = np.expand_dims(img, axis=-1)
     inputs = [K.learning_phase()] + model.inputs
     _convout1_f = K.function(inputs, [model.layers[18].output])
     return _convout1_f([0] + [img])    
@@ -253,23 +254,15 @@ def get_conv_image_descriptor_for_image(img, model):
     _convout1_f = K.function(inputs, [model.layers[31].output])
     return _convout1_f([0] + [im])
 
-
-def obtain_compiled_vgg_16(vgg_weights_path):
-    model = vgg_16(vgg_weights_path)
-    sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
-    model.compile(optimizer=sgd, loss='categorical_crossentropy')
-    return model
-
-def obtain_compiled_model():
-    model = vgg_8()
-    # model = vgg_16()
+def obtain_compiled_model(weights_path=None):
+    model = vgg_8(weights_path)
     sgd = SGD(lr=0.1, decay=1e-6, momentum=0.9, nesterov=True)
     model.compile(optimizer=sgd, loss='categorical_crossentropy')
     return model 
 
 def vgg_8(weights_path=None):
     model = Sequential()
-    model.add(Conv2D(4, (3, 3), activation='relu' , input_shape=(128, 128 , 3) , padding='same') )
+    model.add(Conv2D(4, (3, 3), activation='relu' , input_shape=(128, 128 , 1) , padding='same') )
     model.add(ZeroPadding2D((1, 1)))
     model.add(Conv2D(4, (3, 3), activation='relu'))
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
@@ -291,8 +284,8 @@ def vgg_8(weights_path=None):
     model.add(MaxPooling2D((2, 2), strides=(2, 2)))
 
     model.add(Flatten())
-    model.add(Dropout(0.5))
-    model.add(Dense(1024, activation='softmax'))
+    model.add(Dense(8))
+    model.add(Dense(4))
 
     if weights_path:
         model.load_weights(weights_path)
