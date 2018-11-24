@@ -14,6 +14,25 @@ def get_all_dot_images(image_names, img_path):
         images.append(img)
     return images
 
+def get_all_train_images(img_names, path_train , path_object):
+    images = []
+    objs = []
+    for j in range(np.size(img_names)):
+        img_name = img_names[0][j]
+        img_index , ext = os.path.splitext(img_name)
+        img_index = img_index.split('_')[0]
+                
+        string = path_train + img_name
+        img = cv2.imread(string , 0 )
+        img = cv2.resize(img , (128,128))
+        images.append(img)
+
+        obj = cv2.imread(path_object + img_index + ext , 0)
+        objs.append(obj)
+
+        
+    return images , objs
+
 def load_images_names_in_dot_data_set(img_path):
     file_path = img_path
     return os.listdir(img_path)

@@ -49,15 +49,10 @@ if __name__ == "__main__":
 	# Scale of subregion for the hierarchical regions (to deal with 2/4, 3/4)
 	scale_subregion = float(3)/4
 	scale_mask = float(1)/(scale_subregion*4)
-	# 1 if you want to obtain visualizations of the search for objects
-	bool_draw = 1
-	# How many steps can run the agent until finding one object
 	number_of_steps = 10
-	# Boolean to indicate if you want to use the two databases, or just one
-	two_databases = 0
 	epochs = 2000
 	gamma = 0.90
-	epsilon = 1
+	epsilon = 1.0
 	batch_size = 10
 	test_size = 1
 	# Pointer to where to store the last experience in the experience replay buffer,
@@ -76,7 +71,22 @@ if __name__ == "__main__":
 	# If you want to train it from first epoch, first option is selected. Otherwise,
 	# when making checkpointing, weights of last stored weights are loaded for a particular class object
 
-	model = build_q_network()
+	weight_directory = '../models/model_dot_without_bg/'
+	weight_files = os.listdir(weight_directory)
+	epoch_nums = [-1]
+	for file in weight_files:
+		epoch_num = int(os.path.splitext(file)[0][7:])
+		epoch_nums.append(epoch_num)
+	current_epoch = max(epoch_nums)
+	epochs_id = current_epoch + 1
+
+	# epochs_id = 0
+
+	if epochs_id == 0:
+		q_net_weights = None
+	else:
+		q_net_weights = weight_directory +  '_epoch_' + str(current_epoch) + '.hdf5'
+	model = build_q_network(q_net_weights)
 	model.summary()
 
 	######## LOAD IMAGE NAMES ########
@@ -89,18 +99,7 @@ if __name__ == "__main__":
 
 	# debug for overfitting
 	# number of images that we are trying to perform fitting 
-	img_names = img_names[:,0:20]
-
-
-	# img descriptor model is not working well
-	# thus changing the q-netwrok to conv network
-	# for i in range(np.size(img_names)):
-	# 	img = np.array(imgs[i])
-	# 	desc = get_img_descriptor(img, model_rl)
-	# 	print(desc[0])
-	# pdb.set_trace()
-
-
+	# img_names = img_names[:,0:20]
 
 	for i in range(epochs_id, epochs_id + epochs):
 		for j in range(np.size(img_names)):
@@ -132,21 +131,15 @@ if __name__ == "__main__":
 			# init of the history vector that indicates past actions (6 actions * 4 steps in the memory)
 			history_vector = np.zeros([24])
 			# computation of the initial state instead of vgg_based i am just using 
-			# state = get_state(region_img, history_vector, model_rl)
 			state = get_state(region_img , history_vector)
 			# status indicates whether the agent is still alive and has not triggered the terminal action
 			status = 1
 			action = 0
 			reward = 0
+			cum_reward = 0
 			while (status == 1) and (step < number_of_steps) :
 				qval = model.predict(state, batch_size=1)
-				# background = draw_new_sequences(i, step, action, draw, region_img, background,
-				# 							path_ouptut_folder, iou, reward, gt_mask, region_mask,
-				# 							img_name,bool_draw)
-				# step += 1
-				# print(step)
 				# we force terminal action in case actual IoU is higher than 0.5, to train faster the agent
-				# if (i < 100) & (new_iou > 0.5):
 				if new_iou > 0.5:
 					action = 6
 				# epsilon-greedy policy
@@ -158,10 +151,7 @@ if __name__ == "__main__":
 				if action == 6:
 					new_iou = calculate_iou(gt_mask_img , region_mask)
 					reward = get_reward_trigger(new_iou)
-					# background = draw_new_sequences(i, step, action, draw, region_img, background,
-					# 						path_ouptut_folder, iou, reward, gt_mask, region_mask,
-					# 						img_name,bool_draw)
-					# step += 1
+					cum_reward += reward
 				# movement action, we perform the crop of the corresponding subregion
 				else:
 					region_mask = np.zeros(original_shape)
@@ -195,6 +185,7 @@ if __name__ == "__main__":
 					new_iou = calculate_iou(gt_mask_img , region_mask)
 					reward = get_reward_movement(iou, new_iou)
 					iou = new_iou
+					cum_reward += reward
 				
 				history_vector = update_history_vector(history_vector, action)
 				# new_state = get_state(region_img, history_vector, model_rl)
@@ -240,8 +231,7 @@ if __name__ == "__main__":
 					status = 0
 					
 				step += 1
-			print(i , j , step , action , new_iou )
-			# print(qval[0])
+			print(i , j , step , action , new_iou , cum_reward )
 		
 		out_img = cv2.resize(region_img , (64,64))
 		inp_img = cv2.resize(img , (64,64))

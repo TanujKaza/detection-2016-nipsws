@@ -75,7 +75,12 @@ def get_reward_movement(iou, new_iou):
     return reward
 
 
-def get_reward_trigger(new_iou):
+def get_reward_trigger(new_iou , gan_used=True):
+    if gan_used:
+        iou_threshold = 0.4
+    else:
+        iou_threshold = 0.6
+
     if new_iou > iou_threshold:
         reward = reward_terminal_action
     else:
@@ -93,28 +98,22 @@ def build_q_network(weights_path=None):
     img = Conv2D(4, (3, 3), activation='relu') (img)
     img = MaxPooling2D((2, 2), strides=(2, 2)) (img)
 
-    img = ZeroPadding2D((1, 1)) (img)
-    img = Conv2D(8,( 3, 3), activation='relu') (img)
-    img = ZeroPadding2D((1, 1)) (img)
     img = Conv2D(8,( 3, 3), activation='relu') (img)
     img = ZeroPadding2D((1, 1)) (img)
     img = Conv2D(8,( 3, 3), activation='relu') (img)
     img = MaxPooling2D((2, 2), strides=(2, 2)) (img)
 
-    img = ZeroPadding2D((1, 1)) (img)
-    img = Conv2D(16,( 3, 3), activation='relu') (img)
-    img = ZeroPadding2D((1, 1)) (img)
     img = Conv2D(16,( 3, 3), activation='relu') (img)
     img = ZeroPadding2D((1, 1)) (img)
     img = Conv2D(16,( 3, 3), activation='relu') (img)
     img = MaxPooling2D((2, 2), strides=(2, 2)) (img)
 
     img_desc = Flatten() (img)
-    img_desc = Dense(1024) (img_desc)
+    img_desc = Dense(24) (img_desc)
     img_desc = Activation('relu') (img_desc)
 
     desc = Concatenate()( [ img_desc, inp_history_vector ] )
-    desc = Dense(1024) (desc)
+    desc = Dense(24) (desc)
     desc = Activation('relu') (desc)
     q_value = Dense(6) (desc)
     q_value = Activation('linear') (q_value)

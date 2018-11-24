@@ -36,7 +36,6 @@ class dot(object):
 	def createDot(self):
 		
 		# place main body
-		# radius = random.randint(10,40)
 		radius = 10
 		cx = random.randint(radius,self.width-radius)
 		cy = random.randint(radius,self.height-radius)
